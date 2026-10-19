@@ -1,142 +1,84 @@
 # QyooGenerate-C
 
-QyooGenerate is a generator for customizable graphical representations of a 2d qyoo barcode based on a binary number. It can create images in PNG or SVG format, with a range of options for colors, size, and patterns. This README provides instructions for compiling the C code, running the generator, and using the included test scripts.
+A C command-line reference generator for the historical Qyoo visual carrier.
+It writes PNG (through libgd) and SVG images for a 36-bit payload. This is a
+reference tool, not the production Qyoo 4.0 renderer, resolver, or scanner.
 
-## Project Overview
+## Build and test
 
-The Qyoo generator creates a visual output based on the provided binary ID, producing images with customizable foreground and dot colors. You can also specify the output size, format (PNG or SVG), and background color, with options for transparency.
+Requires a C11 compiler, Make, pkg-config, libgd development headers, and Python 3
+for tests. For example, install `gd pkg-config` with Homebrew on macOS, or
+`build-essential pkg-config libgd-dev python3` using your Linux package manager.
 
-### Key Options:
-
-- **-id**: [REQUIRED] The numeric or binary ID that controls the visual pattern.
-- **-o**: Specifies the output filename. The default is the ID-based name.
-- **-w**: Sets the width of the image (default: 512).
-- **-h**: Sets the height of the image (default: 512).
-- **-fg**: Sets the foreground color (default: `#ffffff`).
-- **-dot**: Sets the dot color (default: `#000000`).
-- **-bg**: Sets the background color (default: `transparent`).
-- **-svg**: Outputs the image in SVG format (default PNG).
-- **-v**: Enables verbose mode for debugging (default no).
-- **--help**: Displays this help message with available options.
-
-## Compiling the Project
-
-To compile the Qyoo generator, follow these steps:
-
-1. Ensure you have **gcc** and **libgd** installed on your system. If not, you can install it using:
-   ```
-   brew install gd
-   ```
-
-2. Navigate to the project’s source (`src`) directory.
-
-3. Run the `make` command to compile the source files:
-   ```
-   make
-   ```
-
-This will generate the executable `qyoo` in the `../bin` directory. Object files will be placed in the `../obj` directory, and the output files from the test scripts will be saved in the `../output` directory by default.
-
-### Makefile Structure
-
-The `Makefile` automates the compilation process:
-- `SRCS`: The list of C source files.
-- `OBJDIR`: The directory where object files (`.o`) are stored.
-- `EXEDIR`: The directory where the final executable is stored.
-- `OUTPUTDIR`: The directory where output images are stored.
-- `make clean`: Cleans up compiled object files and the executable.
-
-## Using the Qyoo Generator
-
-Once compiled, you can generate images by running the `qyoo` executable with various options.
-
-### Example Commands:
-
-1. Basic usage with a decimal ID:
-   ```
-   ../bin/qyoo -id 12345 -o ../output/12345.png
-   ```
-
-2. Generate an image with custom foreground and dot colors:
-   ```
-   ../bin/qyoo -id 12345 -fg "#ff0000" -dot "#00ff00" -o ../output/12345_colored.png
-   ```
-
-3. Create an SVG with a binary ID:
-   ```
-   ../bin/qyoo -id 010101010101010101010101010101010101 -svg -o ../output/alternating.svg
-   ```
-
-4. Verbose mode for debugging:
-   ```
-   ../bin/qyoo -id 12345 -v
-   ```
-
-5. Generate a transparent PNG:
-   ```
-   ../bin/qyoo -id 67890 -bg transparent -o ../output/transparent.png
-   ```
-
-## Test Scripts
-
-The project includes a series of test scripts for common use cases. These scripts automate the testing of the Qyoo generator for various scenarios.
-
-### Available Test Scripts:
-
-- **q_img_basic_1.sh**: Basic image with minimal parameters (default settings).
-- **q_img_transparent_1.sh**: Image with a binary ID and transparent background.
-- **q_img_random_dots_1.sh**: Image with a random dot pattern.
-- **q_img_random_99.sh**: Generates 99 random images.
-- **q_img_nonstandard_ratio.sh**: Generates images with non-standard aspect ratios.
-- **q_img_nodots_1.sh**: All dots turned off in the image.
-- **q_img_mixed_50.sh**: Generates 50 mixed-pattern images.
-- **q_img_invalid_color.sh**: Test with invalid color codes to handle errors.
-- **q_img_max_size.sh**: Generates the largest supported image size.
-- **q_img_default_output.sh**: Uses default settings for output filename and format.
-- **q_img_colors_10.sh**: Generates 10 images with random colors.
-- **q_img_basic_colors_1.sh**: Basic test with specific colors.
-- **q_img_alternating_2.sh**: Alternating dot patterns with binary IDs.
-- **q_img_alldots_1.sh**: All dots turned on.
-
-### Running the Test Scripts:
-
-1. Ensure you have compiled the project and have the executable `../bin/qyoo` ready.
-2. Go into the `scripts` directory and run the following command to make them executable:
-	```
-	chmod +x *
-	```
-2. Execute the desired test script. For example, to run the **q_img_basic_1.sh** test:
-   ```
-   ./q_img_basic_1.sh
-   ```
-
-Each script will generate one or more images in the `../output` directory based on the test case.
-
-## Examples
-
-### Example 1: Alternating Dot Pattern (Image)
-This example generates a PNG image with an alternating dot pattern:
-```
-../bin/qyoo -id 010101010101010101010101010101010101 -o ../output/q_img_alternating_1.png
+```sh
+make -C src
+make -C src test
 ```
 
-### Example 2: Random Dot Pattern
-This generates a PNG image with a random binary ID:
+The Makefile discovers libgd through `pkg-config gdlib`. For another installation,
+pass `GD_CFLAGS` and `GD_LIBS` explicitly. `CC`, `CFLAGS`, `LDFLAGS`, `OBJDIR`, and
+`EXEDIR` are overridable. Build outputs go to `obj/` and `bin/`; images default to
+`output/`. There is no destructive cleanup target.
+
+## Generate an image
+
+Run these examples from `src/`, because the default output directory is relative
+to the current working directory. An explicit `-o` works from any directory.
+
+```sh
+../bin/qyoo -id 12345 -o ../output/12345.png
+../bin/qyoo -id 68719476735 -svg -o ../output/max.svg
+../bin/qyoo -id 010101010101010101010101010101010101 -svg -o ../output/alternating.svg
+../bin/qyoo -id 12345 -fg '#000000' -dot '#ffffff' -bg '#ffffff' -o ../output/black.png
 ```
-RAND_ID=$((RANDOM + 68719476735))
-../bin/qyoo -id $RAND_ID -fg "#ffffff" -dot "#000000" -bg transparent -o ../output/random.png
+
+`-id` accepts decimal **0 through 68,719,476,735**, or exactly 36 binary digits.
+Exactly 36 binary digits always mean binary; shorter digit strings mean decimal.
+Signs, spaces, trailing characters, and overflow are rejected. Base36 URL route
+representations are not accepted by this generator and do not change visual bits.
+
+Options: `-o FILE`, `-svg`, `-w WIDTH`, `-h HEIGHT`, `-fg COLOR`, `-dot COLOR`,
+`-bg COLOR`, `-v`/`--verbose`, `--help`. Width and height default to 512 and are
+limited to 1–4096 each, bounding raster memory (about 64 MiB of pixel storage at
+the maximum, plus library overhead). Small or clipped images may be unreadable;
+accepted dimensions do not guarantee scanner success. Colors must be six hex
+digits, optionally prefixed with `#`, or `transparent`. Defaults preserve the
+historical white carrier, black dots, and transparent background. Errors return
+a nonzero exit status; a failed write can leave a partial output file.
+
+A bounded random ID, using Python rather than shell integer-width assumptions:
+
+```sh
+ID=$(python3 -c 'import secrets; print(secrets.randbelow(1 << 36))')
+../bin/qyoo -id "$ID" -o ../output/random.png
 ```
 
-### Example 3: All Dots On (SVG)
-This generates an SVG with all dots turned on:
-```
-../bin/qyoo -id 111111111111111111111111111111111111 -svg -o ../output/q_svg_alldots_1.svg
-```
+## Compatibility and limits
 
-## Contributing
+Serialization is 36 bits, most significant bit first, row by row from top left
+through bottom right. This agrees with the current Qyoo 4.0 payload ordering.
+The C generator's historical geometry differs from the current web renderer.
+At 512×512 its carrier center is (256,256), radius 128; dot centers span
+179–329 in steps of 30, with radius 13. The web renderer's 256-unit export uses a
+carrier radius of 102 and dot centers 65–190 in steps of 25, radius 10, with an
+opaque white quiet zone and black carrier. Scaling and color changes alone do
+not make these layouts identical. PNG libgd rasterization also differs from the
+web renderer's pixel-center tests. Existing C geometry is preserved here.
 
-We welcome contributions to the QyooGenerator project. Please open an issue or submit a pull request if you'd like to contribute.
+No scan-success rate or physical-camera compatibility is established by these
+CLI tests. The generator does not implement signature-cell/CRC-10 proposals,
+Manifest v1 experiences, ID allocation, Base36 routing, or Ethereum minting.
 
-## License
+`tests/` checks parsing, numeric/binary equivalence, row-major placement, PNG
+output, transparent SVG handling, allocation failure handling, and output errors.
+`scripts/` contains historical image-generation examples, not an assertion-based
+test suite; some need GNU `shuf`. Do not use them as evidence of scanner quality.
 
-This project is licensed under the BSD-3-Clause License. See the `LICENSE` file for details.
+## Licensing and provenance
+
+Repository code is distributed under [BSD-3-Clause](LICENSE). PNG generation
+links against separately installed libgd; retain its applicable license and
+third-party notices when redistributing linked binaries. This repository does
+not vendor libgd. Software licensing does not establish trademark or patent
+rights in the Qyoo symbol. Ownership/provenance of the standalone SVG helper
+still requires maintainer confirmation; see [AUDIT.md](AUDIT.md).

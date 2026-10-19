@@ -1,40 +1,24 @@
-# Define the compiler and flags
-CC = gcc
-CFLAGS = -I/opt/homebrew/include  # Compiler flags (for header files)
-LDFLAGS = -L/opt/homebrew/lib -lgd  # Linker flags (for libraries)
-
-# Define the source files and the output executable
+CC ?= cc
+CFLAGS ?= -O2 -Wall -Wextra -std=c11
+GD_CFLAGS ?= $(shell pkg-config --cflags gdlib 2>/dev/null)
+GD_LIBS ?= $(shell pkg-config --libs gdlib 2>/dev/null)
+CPPFLAGS += $(GD_CFLAGS)
+LDLIBS += $(GD_LIBS)
 SRCS = qyoo.c qyoo_generator.c image_renderer.c svg_renderer.c svg.c
-EXEDIR = ../bin
-OBJDIR = ../obj
-OUTPUTDIR = ../output
-OBJS = $(addprefix $(OBJDIR)/, $(SRCS:.c=.o))  # Object files in ../obj
+EXEDIR ?= ../bin
+OBJDIR ?= ../obj
+OUTPUTDIR ?= ../output
+OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.c=.o))
 OUTPUT = $(EXEDIR)/qyoo
-
-# Default target
+.PHONY: all test
 all: $(OUTPUT) $(OUTPUTDIR)
-
-# Debugging: print OBJS to see what's being generated
-debug:
-	@echo "Object files: '$(OBJS)'"
-
-# Create the object directory if it doesn't exist
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
-# Create the output and executable directories if they don't exist
-$(EXEDIR) $(OUTPUTDIR):
+$(OBJDIR) $(EXEDIR) $(OUTPUTDIR):
 	mkdir -p $@
-
-# Compile individual source files into object files in the ../obj directory
-$(OBJDIR)/%.o: %.c | $(OBJDIR)
-	$(CC) -c $< -o $@ $(CFLAGS)
-
-# Link the object files and create the executable
+$(OBJDIR)/%.o: %.c $(wildcard *.h) | $(OBJDIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 $(OUTPUT): $(OBJS) | $(EXEDIR)
-	$(CC) -o $(OUTPUT) $(OBJS) $(LDFLAGS)
-
-# Clean up object files and the executable
-clean:
-	rm -f $(OBJS)  # Remove object files
-	rm -f $(OUTPUT)  # Remove the executable
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+test: all
+	python3 ../tests/test_cli.py
+	$(CC) $(CFLAGS) ../tests/test_svg_allocation.c -o $(OBJDIR)/test-svg-allocation
+	$(OBJDIR)/test-svg-allocation

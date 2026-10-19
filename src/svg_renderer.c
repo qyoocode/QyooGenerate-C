@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
-void render_svg(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
+int render_svg_checked(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
     // Create SVG
     svg* psvg = svg_create(width, height);
+    if (!psvg) return 0;
 
     // Render each operation
     for (int i = 0; i < op_count; i++) {
@@ -18,6 +19,7 @@ void render_svg(DrawingOp *ops, int op_count, int width, int height, char *outpu
 
 
         // Handle color formatting for SVG (prepend '#' if missing)
+        if (strcmp(op.fill_color, "transparent") == 0) continue;
         char fill_color[8];  // Enough for "#rrggbb\0"
         if (op.fill_color[0] != '#') {
             snprintf(fill_color, sizeof(fill_color), "#%s", op.fill_color);
@@ -40,7 +42,13 @@ void render_svg(DrawingOp *ops, int op_count, int width, int height, char *outpu
     }
 
     // Save the file
-    printf("Saving SVG to: %s\n", output_filename);
-    svg_save(psvg, output_filename);
+    if (verbose) printf("Saving SVG to: %s\n", output_filename);
+    int ok = svg_save_checked(psvg, output_filename);
     svg_free(psvg);
+    return ok;
+}
+
+/* Preserve the original renderer entry point for existing callers. */
+void render_svg(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
+    (void)render_svg_checked(ops, op_count, width, height, output_filename, verbose);
 }

@@ -4,6 +4,7 @@
 #include "drawing.h"
 
 void render_image(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose);
+int render_image_checked(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose);
 
 #endif
 

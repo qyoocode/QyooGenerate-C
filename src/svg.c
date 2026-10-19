@@ -4,22 +4,20 @@
 #include<string.h>
 #include<math.h>
 #include"svg.h"
+#include <stdint.h>
 
 // --------------------------------------------------------
 // STATIC FUNCTION appendstringtosvg
 // --------------------------------------------------------
 static void appendstringtosvg(svg* psvg, char* text)
 {
-    int l = strlen(psvg->svg) + strlen(text) + 1;
-
-    char* p = realloc(psvg->svg, l);
-
-    if(p)
-    {
-        psvg->svg = p;
-    }
-
-    strcat(psvg->svg, text);
+    if (!psvg || psvg->failed) return;
+    size_t current = strlen(psvg->svg), extra = strlen(text);
+    if (extra > SIZE_MAX - current - 1) { psvg->failed = true; return; }
+    char *p = realloc(psvg->svg, current + extra + 1);
+    if (!p) { psvg->failed = true; return; }
+    psvg->svg = p;
+    memcpy(psvg->svg + current, text, extra + 1);
 }
 
 // --------------------------------------------------------
@@ -29,7 +27,7 @@ static void appendnumbertosvg(svg* psvg, int n)
 {
     char sn[16];
 
-    sprintf(sn, "%d", n);
+    snprintf(sn, sizeof(sn), "%d", n);
 
     appendstringtosvg(psvg, sn);
 }
@@ -47,7 +45,8 @@ svg* svg_create(int width, int height)
 
         psvg->svg = malloc(1);
 
-        sprintf(psvg->svg, "%s", "\0");
+        if (!psvg->svg) { free(psvg); return NULL; }
+        psvg->svg[0] = '\0';
 
         appendstringtosvg(psvg, "<svg width='");
         appendnumbertosvg(psvg, width);
@@ -110,23 +109,20 @@ void svg_rectangle(svg* psvg, int x, int y, int width, int height, char* fill)
 // --------------------------------------------------------
 // FUNCTION svg_save
 // --------------------------------------------------------
-void svg_save(svg* psvg, char* filepath)
+int svg_save_checked(svg* psvg, char* filepath)
 {
     if(!psvg->finalized)
     {
         svg_finalize(psvg);
     }
 
-    FILE* fp;
-
-    fp = fopen(filepath, "w");
-
-    if(fp != NULL)
-    {
-        fwrite(psvg->svg, 1, strlen(psvg->svg), fp);
-
-        fclose(fp);
-    }
+    if (psvg->failed) return 0;
+    FILE *fp = fopen(filepath, "w");
+    if (!fp) return 0;
+    size_t length = strlen(psvg->svg);
+    int ok = fwrite(psvg->svg, 1, length, fp) == length;
+    if (fclose(fp) != 0) ok = 0;
+    return ok;
 }
 
 // --------------------------------------------------------
@@ -138,3 +134,8 @@ void svg_free(svg* psvg)
     free(psvg);
 }
 
+
+void svg_save(svg* psvg, char* filepath)
+{
+    (void)svg_save_checked(psvg, filepath);
+}
