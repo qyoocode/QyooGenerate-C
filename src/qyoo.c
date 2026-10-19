@@ -13,7 +13,7 @@
 static void print_help(void) {
     puts("Usage: qyoo -id ID [-o FILE] [-w WIDTH] [-h HEIGHT] [-svg]\n"
          "ID: decimal 0..68719476735, or exactly 36 binary digits.\n"
-         "Dimensions: 1..4096 (default 512). Default output: ../output/ID.png\n"
+         "Dimensions: width 68..4096, height must contain carrier (default 512). Default output: ../output/ID.png\n"
          "Colors: -fg, -dot, -bg accept #rrggbb, rrggbb, or transparent.\n"
          "Defaults: white foreground, black dots, transparent background.\n"
          "Use --help for help; -v or --verbose for drawing operations.");
@@ -88,6 +88,17 @@ int main(int argc, char *argv[]) {
         }
     }
     if (!binary_string[0]) { fputs("The -id option is required\n", stderr); return 1; }
+    /* Use the unchanged generator formulas to reject disappearing payload dots
+       and a carrier extending beyond the raster's inclusive last row. */
+    int radius = width / 4;
+    int square_size = (int)(radius * 2 * 0.707);
+    int dot_radius = square_size / 12;
+    dot_radius -= (dot_radius + 9) / 10;
+    int center_y = height / 2;
+    if (dot_radius <= 0 || center_y - radius < 0 || center_y + radius >= height) {
+        fputs("Dimensions produce invisible dots or clip the carrier; width must be at least 68 and height must contain the width-based radius\n", stderr);
+        return 1;
+    }
     if (!output_filename) {
         snprintf(default_filename, sizeof(default_filename), "../output/%llu.%s", number, svg_output ? "svg" : "png");
         output_filename = default_filename;

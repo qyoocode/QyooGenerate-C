@@ -18,8 +18,9 @@ claims of a remotely exploitable service.
 |---|---|---|
 | HIGH | [Unchecked argument increments and decimal conversion](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/qyoo.c#L47) cause crashes on missing values and accept malformed/overflow IDs, silently keeping only low 36 bits. | Validate option values and strict unsigned decimal range before rendering; test missing arguments, invalid text, 2^36, ULL overflow, and boundaries. |
 | HIGH | [SVG builder allocation](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg.c#L13) appends after failed realloc; initial buffer allocation is unchecked. | Sticky failure state, checked size arithmetic, checked initial allocation, checked save, allocation-failure injection test. |
-| MEDIUM | [Unchecked dimensions and GD allocation](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/image_renderer.c#L10), and success exit status on output failure. | Strict dimensions 1–4096; check GD image creation and stdio write/close results; propagate CLI failure. Legacy void renderer/save entry points remain, with additive checked variants for CLI use. |
+| MEDIUM | [Unchecked dimensions and GD allocation](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/image_renderer.c#L10), and success exit status on output failure. | Strict numeric dimensions up to 4096 and nondegenerate/unclipped geometry; check GD image creation and stdio write/close results; propagate CLI failure. Legacy void renderer/save entry points remain, with additive checked variants for CLI use. |
 | MEDIUM | [SVG transparent fill truncation](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg_renderer.c#L23); arbitrary CLI colors are passed into SVG attributes. | Strict hex/transparent CLI color validation and skip transparent operations. This is input hardening, not evidence of a deployed injection vulnerability. |
+| HIGH | Historical CLI accepts width 64: all 36 SVG payload dots have radius 0; the PNG keeps only one pixel per set cell. Height can also clip the width-based carrier. | Reject zero-radius dots and out-of-bounds carrier rows using unchanged generator formulas; minimum usable width is 68. Add minimum-width/all-cell SVG vectors and rejection tests. |
 | MEDIUM | Historical layout is different from current Qyoo-Web renderer. | Preserve geometry; document exact differences and reference status. No claim of current scanner conformance. |
 | MEDIUM | [Standalone SVG helper](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg.c#L1) has no file-level provenance. | Preserve source and BSD license; require owner confirmation of authorship or upstream attribution/license. No evidence establishes infringement. |
 | LOW | [Homebrew-specific build flags](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/Makefile#L3), inaccurate random-ID example and manual example scripts treated as tests. | pkg-config discovery and overrides; deterministic tests; concise corrected README; bounded random example and historical-script disclaimer. |
@@ -35,10 +36,10 @@ Private source remains local and is not copied into this public repository.
   alternating bits and maximum, plus binary equivalents.
 - Both serialize 36 bits MSB first, in row-major order. Base36 is a URL-layer
   representation and is intentionally outside this CLI.
-- C 512-unit export: circle center256, radius128; integer-truncated inner square
-  size180, dot radius13; centers179,209,239,269,299,329.
-- Web 256-unit export: circle center128, radius102; dots65,90,115,140,165,190,
-  radius10. Web default uses black carrier on opaque white; C defaults to white
+- C 512-unit export: circle center256, radius 128; integer-truncated inner square
+  size180, dot radius 13; centers179,209,239,269,299,329.
+- Web 256-unit export: circle center128, radius 102; dots65,90,115,140,165,190,
+  radius 10. Web default uses black carrier on opaque white; C defaults to white
   carrier with black dots and transparent background. These are not geometrically
   identical at any uniform scale. No geometry change was made.
 - PNG and SVG share C drawing operations; GD's inclusive rectangle edges and
@@ -99,3 +100,41 @@ Owner/legal actions: confirm SVG helper provenance; review trademark/patent
 language separately from software copyright; decide whether a separately
 versioned production-geometry mode is worthwhile only after cross-generator
 qualification. Do not advertise this historical geometry as current production.
+
+
+## Follow-up: degenerate dimensions and provenance search
+
+The original PNG-header-only smoke test at 64×64 did not establish payload
+visibility. Tests added before this follow-up fix reproduced acceptance of
+64×64 PNG/SVG and clipped aspect ratios (12 failing subcases); inspection of the
+retained SVG found 36 circles with radius 0. The previous minimum-layout test also
+required correcting its independently calculated square from 22 to 24 at width 68.
+The CLI now rejects nonpositive calculated dot radius and any carrier extending
+past row `height-1`; it does not change drawing operations, colors, ABI or bits
+for accepted dimensions. This deliberately rejects formerly accepted invalid
+inputs. At width 68, square size 24 and padded dot radius 1 preserve all 36 SVG
+cells at x 23,27,31,35,39,43; y uses the same offsets from the height-based center.
+Minimum height is 35 (odd) or 36 (even). Nondegeneracy is not scan qualification.
+The critical existing CPP 64px evidence fixture was not accessed or modified.
+
+A public provenance search for the SVG helper located a matching append/realloc
+implementation and related helper structure in section 7.9 of the
+[Columbia 2018 SSOL project report](https://www.cs.columbia.edu/~sedwards/classes/2018/4115-fall/reports/SSOL.pdf).
+This is evidence of earlier related code, not proof of direct derivation or a
+redistribution license. The report's referenced GitHub SVG path was unavailable
+(HTTP 404). No applicable upstream license was established; owner/legal
+confirmation remains required. No copyright or license was invented or removed.
+
+Follow-up validation commands:
+
+- `make -C src test` before fix: **FAIL**, degenerate/clipped inputs accepted.
+- `make -C src test` after fix: **PASS**, 7 Python methods plus allocation sweep.
+- `make -B -C src test CFLAGS='-O1 -g -Wall -Wextra -Werror -std=c11 -fsanitize=address,undefined' LDFLAGS='-fsanitize=address,undefined'`: **PASS**, 7 methods and allocation sweep, no sanitizer diagnostics.
+- `make -B -C src test CFLAGS='-O2 -Wall -Wextra -Werror -std=c11'`: **PASS**, 7 methods and allocation sweep.
+- `git diff --check`: **PASS**.
+
+Follow-up free space before compilation: 21,123,308 KiB (20.14 GiB). No dependency
+installation, cleanup, production changes or fixture replacement was performed.
+
+Follow-up final free space: 21,123,708 KiB; retained bin 36 KiB, obj 96 KiB,
+output 20 KiB and ignored test evidence 180 KiB. No cleanup was performed.

@@ -39,9 +39,14 @@ representations are not accepted by this generator and do not change visual bits
 
 Options: `-o FILE`, `-svg`, `-w WIDTH`, `-h HEIGHT`, `-fg COLOR`, `-dot COLOR`,
 `-bg COLOR`, `-v`/`--verbose`, `--help`. Width and height default to 512 and are
-limited to 1–4096 each, bounding raster memory (about 64 MiB of pixel storage at
-the maximum, plus library overhead). Small or clipped images may be unreadable;
-accepted dimensions do not guarantee scanner success. Colors must be six hex
+limited to 4096 each, bounding raster memory (about 64 MiB of pixel storage at
+the maximum, plus library overhead). Width must be at least 68: smaller widths
+produce zero-radius payload dots in the historical integer geometry. Height must
+contain the full width-based carrier: with `radius = width / 4` (integer division),
+`height / 2 - radius >= 0` and `height / 2 + radius < height`. This includes the
+raster rectangle’s last row. For example, width 68 requires height at least 35
+(odd) or 36 (even), and 512×256 is rejected. This is a necessary input-safety
+correction; accepted dimensions still do not guarantee scanner success. Colors must be six hex
 digits, optionally prefixed with `#`, or `transparent`. Defaults preserve the
 historical white carrier, black dots, and transparent background. Errors return
 a nonzero exit status; a failed write can leave a partial output file.
