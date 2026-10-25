@@ -4,6 +4,8 @@ A C command-line reference generator for the historical Qyoo visual carrier.
 It writes PNG (through libgd) and SVG images for a 36-bit payload. This is a
 reference tool, not the production Qyoo 4.0 renderer, resolver, or scanner.
 
+Maintained by **Pushplay LLC**, the company behind Qyoo.
+
 ## Build and test
 
 Requires a C11 compiler, Make, pkg-config, libgd development headers, and Python 3
@@ -81,9 +83,10 @@ test suite; some need GNU `shuf`. Do not use them as evidence of scanner quality
 
 ## Licensing and provenance
 
-Repository code is distributed under [BSD-3-Clause](LICENSE). PNG generation
-links against separately installed libgd; retain its applicable license and
-third-party notices when redistributing linked binaries. This repository does
-not vendor libgd. Software licensing does not establish trademark or patent
-rights in the Qyoo symbol. Ownership/provenance of the standalone SVG helper
-still requires maintainer confirmation; see [AUDIT.md](AUDIT.md).
+Qyoo-owned code is distributed under [BSD-3-Clause](LICENSE); historical copyright
+notices are preserved. PNG generation uses separately installed libgd; its
+complete credit/license notice is included in [third-party notices](THIRD_PARTY_NOTICES.md).
+The SVG serializer is an original replacement for a historical helper whose
+applicable upstream grant could not be established. Existing drawing operations,
+payload order and accepted dimensions are unchanged; serializer output formatting
+may differ. The software license is separate from rights in the Qyoo name/symbol.

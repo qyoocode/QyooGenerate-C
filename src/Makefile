@@ -22,3 +22,5 @@ test: all
 	python3 ../tests/test_cli.py
 	$(CC) $(CFLAGS) ../tests/test_svg_allocation.c -o $(OBJDIR)/test-svg-allocation
 	$(OBJDIR)/test-svg-allocation
+	$(CC) $(CFLAGS) ../tests/test_svg_document.c svg.c -o $(OBJDIR)/test-svg-document
+	$(OBJDIR)/test-svg-document

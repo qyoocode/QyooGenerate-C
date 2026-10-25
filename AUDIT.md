@@ -3,9 +3,10 @@
 Inspected public default branch: `c980898409db454a58c152c3e6d8d94f79538837`.
 Prepared on `codex/public-repo-audit-20261018`; no main edits, push, deployment,
 or production-source changes. Classification: **reference implementation**.
-Release verdict: **conditional for a clearly labeled reference generator**;
-maintainer provenance confirmation remains a publication blocker. It must not
-be presented as an exact production renderer or a camera-qualified generator.
+Current publication disposition (2026-10-24): **ready as a reference generator**.
+Pushplay LLC maintains Qyoo; historical ownership and license notices are retained.
+The unverified SVG helper is replaced by original BSD-3-Clause code. libgd’s full
+credit/license notice is included. No production-renderer or camera claim is made.
 
 ## Findings and remediation
 
@@ -22,7 +23,7 @@ claims of a remotely exploitable service.
 | MEDIUM | [SVG transparent fill truncation](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg_renderer.c#L23); arbitrary CLI colors are passed into SVG attributes. | Strict hex/transparent CLI color validation and skip transparent operations. This is input hardening, not evidence of a deployed injection vulnerability. |
 | HIGH | Historical CLI accepts width 64: all 36 SVG payload dots have radius 0; the PNG keeps only one pixel per set cell. Height can also clip the width-based carrier. | Reject zero-radius dots and out-of-bounds carrier rows using unchanged generator formulas; minimum usable width is 68. Add minimum-width/all-cell SVG vectors and rejection tests. |
 | MEDIUM | Historical layout is different from current Qyoo-Web renderer. | Preserve geometry; document exact differences and reference status. No claim of current scanner conformance. |
-| MEDIUM | [Standalone SVG helper](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg.c#L1) has no file-level provenance. | Preserve source and BSD license; require owner confirmation of authorship or upstream attribution/license. No evidence establishes infringement. |
+| MEDIUM | [Standalone SVG helper](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/svg.c#L1) has no file-level provenance. | 2026-10-24: replaced with an original serializer after bounded provenance review; historical source remains recoverable. No infringement finding is asserted. |
 | LOW | [Homebrew-specific build flags](https://github.com/qyoocode/QyooGenerate-C/blob/c980898409db454a58c152c3e6d8d94f79538837/src/Makefile#L3), inaccurate random-ID example and manual example scripts treated as tests. | pkg-config discovery and overrides; deterministic tests; concise corrected README; bounded random example and historical-script disclaimer. |
 | LOW | No CI or output ignores. | Add Linux build/sanitizer workflow and ignore generated outputs. Workflow is prepared, not yet observed on GitHub. |
 
@@ -62,8 +63,8 @@ history, not a guarantee about deleted remote refs, forks, or future commits.
 `LICENSE` is complete BSD-3-Clause with existing 2024 Qyoo copyright preserved.
 libgd is an external build dependency, not vendored. The installed validation
 version was 2.3.3. Binary distributors must review libgd and transitive dependency
-notices. SVG helper authorship is unresolved; no replacement license or assumed
-attribution was invented. Trademark/patent rights require owner/legal review.
+notices. The current original SVG helper uses BSD-3-Clause; it does not assign a
+license to historical source. Software and Qyoo name/symbol rights are separate.
 
 ## Exact validation commands and results
 
@@ -96,10 +97,8 @@ sessions and cannot be attributed solely to this task. No files were deleted
 or quarantined. Ignored bin/obj, failed-case PNGs and small test SVG/PNG evidence
 are retained for review; no dated build trees or dependency copies were created.
 
-Owner/legal actions: confirm SVG helper provenance; review trademark/patent
-language separately from software copyright; decide whether a separately
-versioned production-geometry mode is worthwhile only after cross-generator
-qualification. Do not advertise this historical geometry as current production.
+Current scope preserves historical geometry; no new production mode or camera
+qualification is required to publish this labeled reference repository.
 
 
 ## Follow-up: degenerate dimensions and provenance search
@@ -123,7 +122,8 @@ implementation and related helper structure in section 7.9 of the
 This is evidence of earlier related code, not proof of direct derivation or a
 redistribution license. The report's referenced GitHub SVG path was unavailable
 (HTTP 404). No applicable upstream license was established; owner/legal
-confirmation remains required. No copyright or license was invented or removed.
+confirmation was the historical blocker. The2026-10-24 original replacement
+closes that current-distribution blocker without claiming a grant for the old helper.
 
 Follow-up validation commands:
 
@@ -138,3 +138,21 @@ installation, cleanup, production changes or fixture replacement was performed.
 
 Follow-up final free space: 21,123,708 KiB; retained bin 36 KiB, obj 96 KiB,
 output 20 KiB and ignored test evidence 180 KiB. No cleanup was performed.
+
+## Publication follow-up — 2026-10-24
+
+Rechecked the primary Columbia report; no applicable redistribution grant was
+established by that evidence. Replaced the helper independently with a small
+formatted-element serializer, preserving its renderer-facing entry points,
+coordinates and colors. The former files were moved recoverably to the central
+quarantine with exact paths/hashes and manifest; Git history remains unchanged.
+A regression first reproduced duplicate closing tags on repeated finalization;
+the replacement finalizes once, checks allocation/write failures and rejects
+invalid fill attributes. The libgd2.3.3 complete `COPYING` notice is now included.
+Existing2024 Qyoo copyright was not reassigned.
+
+Validation: strict C11 build; all7 CLI methods; allocation-failure sweep and new
+serializer geometry/finalization/invalid-fill assertions pass. The same full suite
+passes under ASan/UBSan with no sanitizer diagnostics. Existing CLI tests
+check decimal/binary equivalence and all36 cell positions at valid boundaries.
+No detector, app, physical-camera or architecture work is included.
