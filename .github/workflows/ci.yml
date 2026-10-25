@@ -1,0 +1,11 @@
+name: C generator
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libgd-dev pkg-config
+      - run: make -C src test CFLAGS='-O1 -g -Wall -Wextra -Werror -std=c11 -fsanitize=address,undefined' LDFLAGS='-fsanitize=address,undefined'

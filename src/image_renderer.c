@@ -5,9 +5,10 @@
 #include <string.h>
 #include <stdio.h>
 
-void render_image(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
+int render_image_checked(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
     // Create the image (with true color and transparency support)
     gdImagePtr im = gdImageCreateTrueColor(width, height);
+    if (!im) return 0;
     gdImageAlphaBlending(im, 0);    // Disable alpha blending (to support transparency)
     gdImageSaveAlpha(im, 1);        // Enable saving the alpha channel
 
@@ -21,7 +22,7 @@ void render_image(DrawingOp *ops, int op_count, int width, int height, char *out
         }
 
         // Parse the color from the hex string
-        int red = 0, green = 0, blue = 0;
+        unsigned int red = 0, green = 0, blue = 0;
         int fill_color;
 
         // Handle transparent color
@@ -52,13 +53,21 @@ void render_image(DrawingOp *ops, int op_count, int width, int height, char *out
 
     // Save to file
     FILE *out = fopen(output_filename, "wb");
+    int ok = 0;
     if (out) {
         gdImagePng(im, out);
-        fclose(out);
+        ok = !ferror(out);
+        if (fclose(out) != 0) ok = 0;
     } else {
         fprintf(stderr, "Error: Could not open output file %s for writing\n", output_filename);
     }
 
     // Cleanup
     gdImageDestroy(im);
+    return ok;
+}
+
+/* Preserve the original renderer entry point for existing callers. */
+void render_image(DrawingOp *ops, int op_count, int width, int height, char *output_filename, int verbose) {
+    (void)render_image_checked(ops, op_count, width, height, output_filename, verbose);
 }

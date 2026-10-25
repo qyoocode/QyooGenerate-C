@@ -1,111 +1,115 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <ctype.h>
 #include "qyoo_generator.h"
 #include "image_renderer.h"
 #include "svg_renderer.h"
-#include "drawing.h"
 
-// Function to print help
-void print_help() {
-    printf("Usage: qyoo [options]\n");
-    printf("Options:\n");
-    printf("  -id [number]         Set the numeric ID (required)\n");
-    printf("  -o [filename]        Output filename (default: [number].png or [number].svg)\n");
-    printf("  -w [width]           Set the width of the image (default: 512)\n");
-    printf("  -h [height]          Set the height of the image (default: 512)\n");
-    printf("  -fg [color]          Set the foreground color (default: #ffffff)\n");
-    printf("  -dot [color]         Set the dot color (default: #000000)\n");
-    printf("  -bg [color]          Set the background color (default: transparent)\n");
-    printf("  -svg                 Output the image as an .svg file\n");
-    printf("  -verbose, -v         Verbose (print debug information)\n");
-    printf("  --help, -h           Show this help message\n");
+#define QYOO_MAX 68719476735ULL
+#define MAX_DIMENSION 4096
+
+static void print_help(void) {
+    puts("Usage: qyoo -id ID [-o FILE] [-w WIDTH] [-h HEIGHT] [-svg]\n"
+         "ID: decimal 0..68719476735, or exactly 36 binary digits.\n"
+         "Dimensions: width 68..4096, height must contain carrier (default 512). Default output: ../output/ID.png\n"
+         "Colors: -fg, -dot, -bg accept #rrggbb, rrggbb, or transparent.\n"
+         "Defaults: white foreground, black dots, transparent background.\n"
+         "Use --help for help; -v or --verbose for drawing operations.");
+}
+
+static int parse_decimal(const char *text, unsigned long long max, unsigned long long *value) {
+    if (!text || !*text) return 0;
+    for (const char *p = text; *p; ++p)
+        if (*p < '0' || *p > '9') return 0;
+    errno = 0;
+    char *end;
+    unsigned long long parsed = strtoull(text, &end, 10);
+    if (errno == ERANGE || *end || parsed > max) return 0;
+    *value = parsed;
+    return 1;
+}
+
+static int valid_color(const char *color) {
+    if (strcmp(color, "transparent") == 0) return 1;
+    if (*color == '#') ++color;
+    if (strlen(color) != 6) return 0;
+    for (int i = 0; i < 6; ++i)
+        if (!isxdigit((unsigned char)color[i])) return 0;
+    return 1;
 }
 
 int main(int argc, char *argv[]) {
-    // Default values
-    char *output_filename = "";
+    char *output_filename = NULL;
+    char default_filename[64];
     char binary_string[37] = {0};
-    unsigned long long number = 0;  // Default number
-    int width = 512, height = 512;
-    int svg_output = 0;
-    char *fg_color = "#ffffff"; // white
-    char *dot_color = "#000000"; // black
-    char *bg_color = "transparent"; // transparent background
-    int verbose = 0;
-
-    // Check for no parameters or help
-    if (argc == 1 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
-        print_help();
-        return 0;
-    }
-
-    // Parse command line arguments
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-o") == 0) {
-            output_filename = argv[++i];
-        } else if (strcmp(argv[i], "-w") == 0) {
-            width = atoi(argv[++i]);
-        } else if (strcmp(argv[i], "-h") == 0) {
-            height = atoi(argv[++i]);
-        } else if (strcmp(argv[i], "-fg") == 0) {
-            fg_color = argv[++i];
-        } else if (strcmp(argv[i], "-dot") == 0) {
-            dot_color = argv[++i];
-        } else if (strcmp(argv[i], "-bg") == 0) {
-            bg_color = argv[++i];
-        } else if (strcmp(argv[i], "-id") == 0) {
-            // Check if the input is a binary string or a number
-            if (is_binary_string(argv[++i])) {
-                // If it's a valid binary string, use it directly
-                strcpy(binary_string, argv[i]);
+    unsigned long long number = 0;
+    int width = 512, height = 512, svg_output = 0, verbose = 0;
+    char *fg_color = "#ffffff", *dot_color = "#000000", *bg_color = "transparent";
+    if (argc == 1) { print_help(); return 1; }
+    for (int i = 1; i < argc; ++i) {
+        char *option = argv[i];
+        if (!strcmp(option, "--help")) { print_help(); return 0; }
+        if (!strcmp(option, "-svg")) { svg_output = 1; continue; }
+        if (!strcmp(option, "-v") || !strcmp(option, "--verbose") || !strcmp(option, "-verbose")) {
+            verbose = 1; continue;
+        }
+        if (strcmp(option, "-id") && strcmp(option, "-o") && strcmp(option, "-w") &&
+            strcmp(option, "-h") && strcmp(option, "-fg") && strcmp(option, "-dot") && strcmp(option, "-bg")) {
+            fprintf(stderr, "Unknown option: %s\n", option); return 1;
+        }
+        if (i + 1 >= argc) { fprintf(stderr, "Missing value for %s\n", option); return 1; }
+        char *value = argv[++i];
+        if (!strcmp(option, "-id")) {
+            if (is_binary_string(value)) {
+                memcpy(binary_string, value, sizeof(binary_string));
                 number = binary_string_to_number(binary_string);
             } else {
-                // Otherwise, treat it as a number and convert it
-                number = strtoull(argv[i], NULL, 10);
+                if (!parse_decimal(value, QYOO_MAX, &number)) {
+                    fputs("Invalid ID: expected decimal 0..68719476735 or 36 binary digits\n", stderr); return 1;
+                }
                 number_to_binary_string(number, binary_string, 36);
             }
-        } else if (strcmp(argv[i], "-svg") == 0) {
-	        svg_output = 1;
-        } else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0) {
-            verbose = 1;
+        } else if (!strcmp(option, "-o")) {
+            if (!*value) { fputs("Empty output filename\n", stderr); return 1; }
+            output_filename = value;
+        } else if (!strcmp(option, "-w") || !strcmp(option, "-h")) {
+            unsigned long long dimension;
+            if (!parse_decimal(value, MAX_DIMENSION, &dimension) || dimension == 0) {
+                fputs("Dimensions must be integers from 1 through 4096\n", stderr); return 1;
+            }
+            if (!strcmp(option, "-w")) width = (int)dimension; else height = (int)dimension;
         } else {
-            printf("Unknown argument: %s\n", argv[i]);
-            return 1;
+            if (!valid_color(value)) { fputs("Invalid color: expected rrggbb, #rrggbb, or transparent\n", stderr); return 1; }
+            if (!strcmp(option, "-fg")) fg_color = value;
+            else if (!strcmp(option, "-dot")) dot_color = value;
+            else bg_color = value;
         }
     }
-
-    // Check if a binary string or number was provided
-    if (binary_string[0] == '\0') {
-        printf("Please provide a valid number or 36-digit binary string using the -id option.\n");
+    if (!binary_string[0]) { fputs("The -id option is required\n", stderr); return 1; }
+    /* Use the unchanged generator formulas to reject disappearing payload dots
+       and a carrier extending beyond the raster's inclusive last row. */
+    int radius = width / 4;
+    int square_size = (int)(radius * 2 * 0.707);
+    int dot_radius = square_size / 12;
+    dot_radius -= (dot_radius + 9) / 10;
+    int center_y = height / 2;
+    if (dot_radius <= 0 || center_y - radius < 0 || center_y + radius >= height) {
+        fputs("Dimensions produce invisible dots or clip the carrier; width must be at least 68 and height must contain the width-based radius\n", stderr);
         return 1;
     }
-
-    // If no output filename, default to number-based name
-    if (strcmp(output_filename, "") == 0) {
-        if (svg_output) {
-            asprintf(&output_filename, "../output/%llu.svg", number);
-        } else {
-            asprintf(&output_filename, "../output/%llu.png", number);
-        }
+    if (!output_filename) {
+        snprintf(default_filename, sizeof(default_filename), "../output/%llu.%s", number, svg_output ? "svg" : "png");
+        output_filename = default_filename;
     }
-
-    // Auto-detect if the output should be SVG based on the file extension
-    if (strstr(output_filename, ".svg") != NULL) {
-        svg_output = 1;
-    }
-
-    // Generate Qyoo operations
+    size_t len = strlen(output_filename);
+    if (len >= 4 && !strcmp(output_filename + len - 4, ".svg")) svg_output = 1;
     DrawingOp ops[100];
     int op_count;
     generate_qyoo(ops, &op_count, width, height, fg_color, dot_color, bg_color, binary_string, verbose);
-
-    // Render to PNG or SVG
-    if (svg_output) {
-        render_svg(ops, op_count, width, height, output_filename, verbose);
-    } else {
-        render_image(ops, op_count, width, height, output_filename, verbose);
-    }
-
+    int ok = svg_output ? render_svg_checked(ops, op_count, width, height, output_filename, verbose)
+                        : render_image_checked(ops, op_count, width, height, output_filename, verbose);
+    if (!ok) { fputs("Could not write output\n", stderr); return 1; }
     return 0;
 }

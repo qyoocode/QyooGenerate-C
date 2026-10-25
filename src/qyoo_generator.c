@@ -6,6 +6,7 @@
 #include "drawing.h"
 
 void generate_qyoo(DrawingOp *ops, int *op_count, int width, int height, char *fg_color, char *dot_color, char *bg_color, char *binary_string, int verbose) {
+    (void)verbose;
     int radius = width / 4;
     int square_size = radius * 2 * 0.707;
     int center_x = width / 2;
